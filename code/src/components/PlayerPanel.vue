@@ -31,6 +31,28 @@ function toggleComments() {
   commentsOpen.value = !commentsOpen.value
   if (commentsOpen.value && !wide()) upNextOpen.value = false
 }
+const titleAt = (i: number) => {
+  const id = player.queue[i]
+  return id ? library.videos.get(id)?.title ?? '' : ''
+}
+const prevTitle = computed(() => titleAt(player.index - 1))
+const nextTitle = computed(() => titleAt(player.index + 1))
+
+// Shift+N / Shift+P like YouTube. Only works while focus is on this page —
+// clicks inside the video iframe give keyboard focus to YouTube's player.
+function onKey(e: KeyboardEvent) {
+  if (!e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return
+  const t = e.target as HTMLElement | null
+  if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+  const k = e.key.toLowerCase()
+  if (k === 'n' && player.hasNext) player.next()
+  else if (k === 'p' && player.hasPrev) player.prev()
+  else return
+  e.preventDefault()
+}
+window.addEventListener('keydown', onKey)
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
 const mq = window.matchMedia('(min-width: 1280px)')
 const onResize = () => {
   if (!mq.matches && upNextOpen.value && commentsOpen.value) upNextOpen.value = false
@@ -115,8 +137,26 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="controls">
-        <button class="btn icon" :disabled="!player.hasPrev" aria-label="Previous" @click="player.prev"><Icon name="prev" :size="16" /></button>
-        <button class="btn icon" :disabled="!player.hasNext" aria-label="Next" @click="player.next"><Icon name="next" :size="16" /></button>
+        <div class="skip" role="group" aria-label="Skip videos">
+          <button
+            class="btn skip-btn"
+            :disabled="!player.hasPrev"
+            :title="prevTitle ? `Previous: ${prevTitle} (Shift+P)` : 'No previous video'"
+            aria-label="Previous video"
+            @click="player.prev"
+          >
+            <Icon name="prev" :size="15" /><span class="lbl">Previous</span>
+          </button>
+          <button
+            class="btn skip-btn"
+            :disabled="!player.hasNext"
+            :title="nextTitle ? `Next: ${nextTitle} (Shift+N)` : 'End of the queue'"
+            aria-label="Next video"
+            @click="player.next"
+          >
+            <span class="lbl">Next</span><Icon name="next" :size="15" />
+          </button>
+        </div>
         <span class="pos faint">{{ player.index + 1 }} / {{ player.queue.length }}</span>
         <label class="toggle">
           <input v-model="settings.prefs.autoplayNext" type="checkbox" />
@@ -184,6 +224,10 @@ h2 {
 }
 .t p { margin: 2px 0 0; font-size: 13px; }
 .controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.skip { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+.skip-btn { height: 32px; padding: 0 14px; border: 0; background: transparent; }
+.skip-btn:hover:not(:disabled) { background: var(--panel-2); }
+.skip-btn:not(:disabled) :deep(svg) { color: var(--accent); }
 .pos { font-variant-numeric: tabular-nums; font-size: 12px; margin-right: auto; }
 .btn.ok { background: rgba(52, 211, 153, .18); border-color: rgba(52, 211, 153, .5); color: #a7f3d0; }
 
@@ -229,6 +273,7 @@ h2 {
   .t p { display: none; }
   h2 { font-size: 14px; -webkit-line-clamp: 1; line-clamp: 1; }
   .controls { margin-top: 8px; }
+  .skip-btn { padding: 0 12px; }
   .sec-body { max-height: 34vh; }
 }
 @media (max-width: 1279px) {
