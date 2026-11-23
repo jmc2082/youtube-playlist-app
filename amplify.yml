@@ -13,7 +13,7 @@ applications:
             - nvm use 22
             # Node 22 ships npm 10, which can't read the npm 11 lock file
             # (fails with "Missing: @emnapi/... from lock file"). Match local npm.
-            - npm install -g npm@11
+            - npm install -g npm@11.6.2   # keep in sync with "packageManager" in code/package.json
             - node --version && npm --version
             - npm ci --cache .npm --prefer-offline
         build:
