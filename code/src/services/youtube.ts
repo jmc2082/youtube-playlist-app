@@ -62,7 +62,10 @@ async function call<T>(
   const json = await res.json().catch(() => ({}))
   if (!res.ok) {
     const err = json?.error
-    const reason: string | undefined = err?.errors?.[0]?.reason
+    // Google puts the precise cause in error.details[].reason (ErrorInfo), e.g.
+    // API_KEY_HTTP_REFERRER_BLOCKED; fall back to the legacy errors[].reason.
+    const info = (err?.details as any[] | undefined)?.find((d) => String(d?.['@type']).endsWith('ErrorInfo'))
+    const reason: string | undefined = info?.reason ?? err?.errors?.[0]?.reason
     throw new YouTubeError(friendly(reason, err?.message ?? res.statusText), res.status, reason)
   }
   return json as T
@@ -74,6 +77,14 @@ function friendly(reason: string | undefined, fallback: string): string {
       return 'Daily YouTube API quota is used up. It resets at midnight Pacific time.'
     case 'manualSortRequired':
       return 'This playlist is set to auto-sort on YouTube. Switch it to "Manual" in YouTube playlist settings first.'
+    case 'API_KEY_HTTP_REFERRER_BLOCKED':
+      return `Your API key doesn’t allow this website. In Google Cloud → Credentials → your API key → Website restrictions, add ${location.origin}/*`
+    case 'API_KEY_SERVICE_BLOCKED':
+      return 'Your API key isn’t allowed to call the YouTube Data API. In Google Cloud → Credentials → your API key → API restrictions, add “YouTube Data API v3”.'
+    case 'API_KEY_INVALID':
+      return 'The API key is invalid. Check VITE_YOUTUBE_API_KEY (in Amplify: environment variables, then redeploy).'
+    case 'SERVICE_DISABLED':
+      return 'YouTube Data API v3 isn’t enabled for the API key’s Google Cloud project. Enable it under APIs & Services → Library.'
     case 'insufficientPermissions':
     case 'ACCESS_TOKEN_SCOPE_INSUFFICIENT':
       return 'This needs a YouTube API key — set VITE_YOUTUBE_API_KEY in code/.env and restart the dev server.'
@@ -83,7 +94,7 @@ function friendly(reason: string | undefined, fallback: string): string {
     case 'playlistNotFound':
       return 'That playlist is not accessible.'
     default:
-      return fallback
+      return reason ? `${fallback} (${reason})` : fallback
   }
 }
 
