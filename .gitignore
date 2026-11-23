@@ -1,0 +1,49 @@
+# ───────── Secrets — never commit ─────────
+# Local credential stash (OAuth client secret JSON, API keys, etc.)
+access/
+# Env files (Amplify supplies these as environment variables instead)
+.env
+.env.*
+!.env.example
+# Common credential file shapes, anywhere in the repo
+client_secret*.json
+*credentials*.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*api*key*.txt
+*.secret
+*.secrets
+
+# ───────── Personal data ─────────
+# Google Takeout exports (watch history, playlists)
+*.csv
+Takeout/
+takeout*/
+*.zip
+
+# ───────── Dependencies & build output ─────────
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# ───────── Logs ─────────
+*.log
+npm-debug.log*
+
+# ───────── OS / editor / tools ─────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.claude/settings.local.json
+# Amplify CLI local state (if ever used)
+amplify/#current-cloud-backend/
+amplify/.config/local-*
+amplify/team-provider-info.json
